@@ -1,0 +1,16 @@
+[
+  {
+    "id": "A1",
+    "title": "Task One",
+    "status": "new",
+    "detail": "First task details",
+    "updatedAt": "2026-01-21T10:30:00Z"
+  },
+  {
+    "id": "B2",
+    "title": "Task Two",
+    "status": "in_progress",
+    "detail": "Second task in progress",
+    "updatedAt": "2026-01-22T12:00:00Z"
+  }
+]
