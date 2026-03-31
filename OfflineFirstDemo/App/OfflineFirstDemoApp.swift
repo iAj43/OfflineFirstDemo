@@ -14,6 +14,10 @@ struct OfflineFirstDemoApp: App {
         apiClient: MockAPIClient(),
         cacheService: FileCacheService()
     )
+    
+    init() {
+        _ = NetworkMonitor.shared
+    }
 
     var body: some Scene {
         WindowGroup {

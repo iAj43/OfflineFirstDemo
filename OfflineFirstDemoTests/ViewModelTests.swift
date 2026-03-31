@@ -31,7 +31,7 @@ final class ViewModelTests: XCTestCase {
         let viewModel = ItemListViewModel(repository: repo)
         
         // allow async task to complete
-        try? await Task.sleep(nanoseconds: 300_000_000)
+        try? await Task.sleep(nanoseconds: 800_000_000)
         
         // then
         if case .success(let loadedItems) = viewModel.state {
@@ -48,7 +48,7 @@ final class ViewModelTests: XCTestCase {
         
         // when
         let viewModel = ItemListViewModel(repository: repo)
-        try? await Task.sleep(nanoseconds: 300_000_000)
+        try? await Task.sleep(nanoseconds: 800_000_000)
         
         // then
         if case .empty = viewModel.state {
@@ -72,13 +72,34 @@ final class ViewModelTests: XCTestCase {
         
         // when
         let viewModel = ItemListViewModel(repository: repo)
-        try? await Task.sleep(nanoseconds: 300_000_000)
+        try? await Task.sleep(nanoseconds: 800_000_000)
         
         // then
         if case .offline(let items) = viewModel.state {
             XCTAssertEqual(items.count, 1)
         } else {
             XCTFail("Expected offline state")
+        }
+    }
+    
+    func test_viewModel_errorState_whenNetworkFails_andNoCache() async {
+        
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        
+        let cache = FileCacheService(fileURL: tempURL)
+        
+        let api = MockFailingAPIClient()
+        let repo = ItemRepository(apiClient: api, cacheService: cache)
+        
+        let viewModel = ItemListViewModel(repository: repo)
+        
+        try? await Task.sleep(nanoseconds: 800_000_000)
+        
+        if case .error = viewModel.state {
+            XCTAssertTrue(true)
+        } else {
+            XCTFail("Expected error state")
         }
     }
 }

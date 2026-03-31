@@ -25,18 +25,22 @@ final class ItemListViewModel: ObservableObject {
         state = .loading
         
         Task {
+            // allow network monitor to update
+            try? await Task.sleep(nanoseconds: 300_000_000)
             let result = await repository.fetchInitial()
-            updateState(items: result.items, isOffline: result.isOffline)
+            updateState(items: result.items, isOffline: result.isOffline, error: result.error)
         }
     }
     
     func refresh() async {
         let result = await repository.refresh()
-        updateState(items: result.items, isOffline: result.isOffline)
+        updateState(items: result.items, isOffline: result.isOffline, error: result.error)
     }
     
-    private func updateState(items: [Item], isOffline: Bool) {
-        if items.isEmpty {
+    private func updateState(items: [Item], isOffline: Bool, error: String?) {
+        if let error = error {
+            state = .error(error)
+        } else if items.isEmpty {
             state = .empty
         } else if isOffline {
             state = .offline(items)
@@ -48,16 +52,12 @@ final class ItemListViewModel: ObservableObject {
     private func startPolling() {
         pollingTask = Task {
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 10_000_000_000) // 10 sec
-                let updatedItems = await repository.pollUpdates()
-                
-                if !updatedItems.isEmpty {
-                    state = .success(updatedItems)
-                }
+                try? await Task.sleep(nanoseconds: 10_000_000_000)
+                let result = await repository.refresh()
+                updateState(items: result.items, isOffline: result.isOffline, error: result.error)
             }
         }
     }
-    
     deinit {
         pollingTask?.cancel()
     }

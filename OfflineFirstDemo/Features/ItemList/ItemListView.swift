@@ -45,7 +45,9 @@ struct ItemListView: View {
                 Text(message)
                     .foregroundColor(.red)
                 Button("Retry") {
-                    viewModel.loadInitialData()
+                    Task {
+                        await viewModel.refresh()
+                    }
                 }
             }
             

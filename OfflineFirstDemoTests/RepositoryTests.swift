@@ -25,58 +25,81 @@ final class RepositoryTests: XCTestCase {
     }
     
     func test_fetchInitial_success_savesAndReturnsItems() async {
-        // given
         let items = [makeItem(id: "1"), makeItem(id: "2")]
         let api = MockSuccessAPIClient(items: items)
-        let cache = FileCacheService()
+        
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        
+        let cache = FileCacheService(fileURL: tempURL)
         let repository = ItemRepository(apiClient: api, cacheService: cache)
         
-        // when
         let result = await repository.fetchInitial()
         
-        // then
         XCTAssertEqual(result.items.count, 2)
         XCTAssertFalse(result.isOffline)
+        XCTAssertNil(result.error)
     }
     
     func test_fetchInitial_failure_returnsCachedItemsOffline() async {
-        // given
         let cachedItems = [makeItem(id: "cached1")]
-        let cache = FileCacheService()
+        
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        
+        let cache = FileCacheService(fileURL: tempURL)
         try? cache.save(cachedItems)
         
         let api = MockFailingAPIClient()
         let repository = ItemRepository(apiClient: api, cacheService: cache)
         
-        // when
         let result = await repository.fetchInitial()
         
-        // then
         XCTAssertEqual(result.items.count, 1)
         XCTAssertTrue(result.isOffline)
+        XCTAssertNil(result.error)
+    }
+    
+    func test_fetchInitial_failure_returnsError_whenNoCache() async {
+        
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        
+        let cache = FileCacheService(fileURL: tempURL)
+        
+        let api = MockFailingAPIClient()
+        let repository = ItemRepository(apiClient: api, cacheService: cache)
+        
+        let result = await repository.fetchInitial()
+        
+        XCTAssertTrue(result.items.isEmpty)
+        XCTAssertFalse(result.isOffline)
+        XCTAssertNotNil(result.error)
     }
     
     func test_merge_updatesItem_whenUpdatedAtIsNewer() async {
-        // given
+        
         let oldDate = Date(timeIntervalSince1970: 1000)
         let newDate = Date(timeIntervalSince1970: 2000)
         
         let oldItem = makeItem(id: "1", title: "Old", updatedAt: oldDate)
         let newItem = makeItem(id: "1", title: "New", updatedAt: newDate)
         
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        
+        let cache = FileCacheService(fileURL: tempURL)
+        
         let api = MockSuccessAPIClient(items: [oldItem])
-        let cache = FileCacheService()
         let repository = ItemRepository(apiClient: api, cacheService: cache)
         
         _ = await repository.fetchInitial()
         
-        // update with newer data
         let updatedAPI = MockSuccessAPIClient(items: [newItem])
-        let updatedRepository = ItemRepository(apiClient: updatedAPI, cacheService: cache)
+        let updatedRepo = ItemRepository(apiClient: updatedAPI, cacheService: cache)
         
-        let result = await updatedRepository.fetchInitial()
+        let result = await updatedRepo.fetchInitial()
         
-        // then
         XCTAssertEqual(result.items.first?.title, "New")
     }
 }

@@ -19,21 +19,24 @@ actor ItemRepository {
         self.cacheService = cacheService
     }
     
-    func fetchInitial() async -> (items: [Item], isOffline: Bool) {
+    func fetchInitial() async -> (items: [Item], isOffline: Bool, error: String?) {
         do {
             let remote = try await apiClient.fetchItems()
             let merged = merge(new: remote, existing: items)
             items = merged
             try? cacheService.save(merged)
-            return (merged, false)
+            return (merged, false, nil)
         } catch {
             let cached = (try? cacheService.load()) ?? []
+            if cached.isEmpty {
+                return ([], false, "No internet and no cached data available")
+            }
             items = cached
-            return (cached, true)
+            return (cached, true, nil)
         }
     }
     
-    func refresh() async -> (items: [Item], isOffline: Bool) {
+    func refresh() async -> (items: [Item], isOffline: Bool, error: String?) {
         await fetchInitial()
     }
     
